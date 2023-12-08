@@ -14,6 +14,7 @@ from PyQt5.QtCore import Qt, QUrl
 
 def b(self):
     """Затычка"""
+    print(1)
     pass
 
 
