@@ -1,4 +1,5 @@
 import glob
+import os
 import sqlite3
 from PyQt5 import QtWidgets
 from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
@@ -12,10 +13,23 @@ from PyQt5.QtCore import Qt, QUrl
 # почти все импорты временны и большая часть убирётся
 
 
-def b(self):
+def b():
     """Затычка"""
     print(1)
     pass
+
+
+def check_new_tracks():
+    txt = open('old_tracks.txt').read().split('\n')
+    new_txt = list(map(lambda x: x[7:], glob.glob("tracks/*.mp3")))
+    for track in new_txt:
+        if track not in txt:
+            txt.append(track)
+    for track in txt:
+        if track not in new_txt:
+            txt.remove(track)
+    new_txt = open('old_tracks.txt', 'w').write('\n'.join(txt))
+    return txt
 
 
 class PlayList(QMainWindow):
@@ -28,16 +42,29 @@ class PlayList(QMainWindow):
 
     def init_ui(self):
         """Основная инициализация"""
+        self.update_base()
         self.get_base()
         self.get_queue()
+
+        self.uiP.tableWidget.cellClicked.connect(self.clicked_cell)
+
+        self.uiP.custom_button.clicked.connect(self.add_custom_file)
 
         self.uiP.add_button.clicked.connect(self.add_track)
         self.uiP.delete_button.clicked.connect(self.delete_track)
         self.uiP.up_button.clicked.connect(self.up_track)
         self.uiP.down_button.clicked.connect(self.down_track)
 
+        # self.uiP.q
+
+    def clicked_cell(self):
+        row = self.uiP.tableWidget.currentRow()
+        print(row)
+        self.cell = self.uiP.tableWidget.
+
+
     def add_track(self):
-        pass
+        txt = open("queue.txt").read().split('\n')
 
     def delete_track(self):
         pass
@@ -47,6 +74,22 @@ class PlayList(QMainWindow):
 
     def down_track(self):
         pass
+
+    def update_base(self):
+        con = sqlite3.connect('base.sqlite')
+        cur = con.cursor()
+        result1 = cur.execute("""SELECT
+                    songs.name FROM songs""").fetchall()
+        result = list()
+        for i in result1:
+            result.append(i[0])
+        tracks = check_new_tracks()
+        for track in tracks:
+            if track[:-4] not in result:
+                print(track[:-4])
+                cur.execute("""INSERT INTO songs(name) VALUES(?)""", (track[:-4],))
+        con.commit()
+        con.close()
 
     def get_base(self):
         """Загружает базу данных о плейлистах в правую таблицу"""
@@ -77,16 +120,35 @@ class PlayList(QMainWindow):
         # ставим размер столбцов в соответствии с шириной названий
         self.uiP.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.uiP.tableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.uiP.tableWidget.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
 
     def get_queue(self):
-        self.txt = open("queue.txt").read().split('\n')
-        for i, row in enumerate(self.txt):
+        txt = open("queue.txt").read().split('\n')
+        for i, row in enumerate(txt):
             self.uiP.queue.setRowCount(
                 self.uiP.queue.rowCount() + 1)
             self.uiP.queue.setItem(
                 i, 0, QTableWidgetItem(str(row)))
 
+        self.uiP.queue.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
         self.uiP.queue.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
+    def add_custom_file(self):
+        """Открыть окно для выбора файла и добавить сторонний трек"""
+        path, _ = QFileDialog.getOpenFileName(self, "Open music")
+        name = path[path.rfind('/') + 1:-4]
+        print(path[path.rfind('/') + 1:-4])
+        con = sqlite3.connect('base.sqlite')
+        cur = con.cursor()
+        result1 = cur.execute("""SELECT
+                            songs.name FROM songs WHERE custom = ?""", (path,)).fetchall()
+        result = list()
+        for i in result1:
+            result.append(i[0])
+        if name not in result:
+            cur.execute("""INSERT INTO songs(name, custom) VALUES(?, ?)""", (name, path))
+            con.commit()
+        con.close()
 
 
 class Settings(QMainWindow):
@@ -205,7 +267,7 @@ class MyWindow(QMainWindow):
 
     def init_ui(self):
         """Основная инициализация"""
-        self.check_new_tracks()
+        check_new_tracks()
         # создаём проигрыватель
         self.mediaPlayer = QMediaPlayer(None, QMediaPlayer.VideoSurface)
         # флажки
@@ -246,17 +308,6 @@ class MyWindow(QMainWindow):
     def duration_changed(self, duration):
         self.ui.horizontalSlider.setRange(0, duration)
 
-    def check_new_tracks(self):
-        txt = open('old_tracks.txt').read().split('\n')
-        new_txt = list(map(lambda x: x[7:], glob.glob("tracks/*.mp3")))
-        for track in new_txt:
-            if track not in txt:
-                txt.append(track)
-        for track in txt:
-            if track not in new_txt:
-                txt.remove(track)
-        new_txt = open('old_tracks.txt', 'w').write('\n'.join(txt))
-
     def open_parametr(self):
         """Открывает окно с настройками"""
         self.wpar = Settings()
@@ -278,7 +329,7 @@ class MyWindow(QMainWindow):
 
     def open_file(self):
         """Открыть окно для выбора файла"""
-        filename, _ = QFileDialog.getOpenFileName(self, "Open music")
+        filename, _ = QFileDialog.getOpenFileName(self, "Open music", 'G:/Sasha/work/PyMusic/tracks')
         print(filename)
         if filename != '':
             self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(filename)))
