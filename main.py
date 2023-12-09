@@ -60,7 +60,7 @@ class PlayList(QMainWindow):
     def clicked_cell(self):
         row = self.uiP.tableWidget.currentRow()
         print(row)
-        self.cell = self.uiP.tableWidget.
+        # self.cell = self.uiP.tableWidget.
 
 
     def add_track(self):
