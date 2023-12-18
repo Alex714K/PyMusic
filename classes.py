@@ -275,6 +275,7 @@ class Settings(QMainWindow):
         self.close()
 
     def activate_buttons(self):
+        """Активирует кнопки"""
         self.uiS.activate_button.setEnabled(1)
         self.uiS.confirm_button.setEnabled(1)
 
@@ -292,6 +293,7 @@ class Settings(QMainWindow):
         self.uiS.line_folder.setText(self.folder)
 
     def color_changed(self):
+        """Вытаскивает из строк в программу показатели цветов"""
         self.red = int(self.uiS.lineRed.text())
         self.green = int(self.uiS.lineGreen.text())
         self.blue = int(self.uiS.lineBlue.text())
@@ -335,42 +337,48 @@ class Player(QMainWindow):
         super(Player, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)  # подключаем интерфейс
-        self.init_ui()
+        self.init_ui()  # Нужно объяснять?)
 
     def init_ui(self):
         """Основная инициализация"""
+        # прикольная кнопка плей is activated
         self.ui.playButton.setIcon(
             self.style().standardIcon(QStyle.SP_MediaPlay))
-
+        # словарь для преобразования в update_base()
         self.forms = {'mp3': '1',
                       'wav': '2'}
         # флажки
         self.playing = False
         self.player_changing = False
 
-        self.update_base()
-        self.open_settings_txt()
-        self.set_color()
+        self.update_base()  # обновляем базу
+        self.open_settings_txt()  # вытаскиваем настройки
+        self.set_color()  # ставим цвет фона
 
+        # если изменилось состояние (play/stop)
         mediaPlayer.stateChanged.connect(self.mediastate_changed)
+        # если музыка проигралась одну секунду (двигает ползунок)
         mediaPlayer.positionChanged.connect(self.position_changed)
+        # если изменился трек, подгоняется длинна ползунка
         mediaPlayer.durationChanged.connect(self.duration_changed)
 
-        self.ui.horizontalSlider.valueChanged.connect(self.set_position)
+        self.ui.horizontalSlider.valueChanged.connect(self.set_position)  # если ползунок подвигали
 
         self.ui.openAudio.clicked.connect(self.open_file)
         self.ui.playlist.triggered.connect(self.open_playlists)
-        self.ui.playButton.clicked.connect(self.pause_music)
         self.ui.win_options.triggered.connect(self.open_parametr)
+        self.ui.playButton.clicked.connect(self.pause_music)
 
-        self.ui.next_button.clicked.connect(mediaPlayer.playlist().next)
-        self.ui.previous_button.clicked.connect(mediaPlayer.playlist().previous)
+        self.ui.next_button.clicked.connect(mediaPlayer.playlist().next)  # трек вперёд
+        self.ui.previous_button.clicked.connect(mediaPlayer.playlist().previous)  # трек назад
 
     def set_position(self, position):
-        if not self.player_changing:
+        """Двигаем плеер в зависимости от позиции ползунка"""
+        if not self.player_changing:  # если это делает пользователь
             mediaPlayer.setPosition(position)
 
     def mediastate_changed(self):
+        """Меняет иконку кнопки play"""
         if mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.ui.playButton.setIcon(
                 self.style().standardIcon(QStyle.SP_MediaPause)
@@ -384,11 +392,15 @@ class Player(QMainWindow):
             )
 
     def position_changed(self, position):
+        """Плеер двигает ползунок"""
+        # была проблема, когда проигрыватель двигает ползунок, а потом ползунок смещал проигрыватель по времени.
+        # этот флажок чинит эту проблему
         self.player_changing = True
         self.ui.horizontalSlider.setValue(position)
         self.player_changing = False
 
     def duration_changed(self, duration):
+        """Изменяет длинну ползунка в зависимости от длинны трека"""
         self.ui.horizontalSlider.setRange(0, duration)
 
     def open_parametr(self):
@@ -407,8 +419,6 @@ class Player(QMainWindow):
         result1 = cur.execute("""SELECT
                     songs.name FROM songs""").fetchall()
         result = list(map(lambda x: x[0], result1))
-        # for i in result1:
-        #     result.append(i[0])
         tracks, paths = check_new_tracks()
         a = 0
         for track in tracks:
