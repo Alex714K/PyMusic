@@ -6,15 +6,25 @@ from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
 from myplayer import Ui_MainWindow
 from myplaylist import Ui_MainPlaylist
 from mysetting import Ui_MainSetting
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QTableWidgetItem, QHeaderView, QStyle
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from PyQt5.QtGui import QIcon, QPalette
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QTableWidgetItem, QHeaderView, QStyle, QMessageBox
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
+from PyQt5.QtGui import QIcon, QPalette, QLinearGradient, QBrush, QColor
 from PyQt5.QtCore import Qt, QUrl
 
+mediaPlayer = QMediaPlayer()
+playlist = QMediaPlaylist()
+url = QUrl.fromLocalFile("tracks/Eye of the storm.mp3")
+# url = QUrl.fromLocalFile("tracks/This Is It.mp3")
+
+
+
+mediaPlayer.setPlaylist(playlist)
+mediaPlayer.playlist().setCurrentIndex(0)
+# mediaPlayer.playlist().addMedia(QMediaContent(url))
 
 def b():
     """Затычка"""
-    print(1)
+    print("Затычка")
     pass
 
 
@@ -29,10 +39,14 @@ class PlayList(QMainWindow):
 
     def init_ui(self):
         """Основная инициализация"""
-        # self.update_base()
+        self.forms = {'mp3': '1',
+              'wav': '2'}
+
+        self.update_base()
         self.get_base()
         self.get_queue()
 
+        self.uiP.tableWidget.cellDoubleClicked.connect(self.choose_track)
         self.uiP.tableWidget.cellClicked.connect(self.clicked_cell)
 
         self.uiP.custom_button.clicked.connect(self.add_custom_file)
@@ -42,15 +56,25 @@ class PlayList(QMainWindow):
         self.uiP.up_button.clicked.connect(self.up_track)
         self.uiP.down_button.clicked.connect(self.down_track)
 
-        # self.uiP.q
+
+    def choose_track(self):
+        # информация о названии клетки, строке, формате
+        cell = self.uiP.tableWidget.currentItem().text()
+        row = self.uiP.tableWidget.currentRow()
+        form = self.uiP.tableWidget.item(row, 3).text()
+        if self.uiP.tableWidget.item(row, 0).text() == cell:
+            url = QUrl.fromLocalFile(f"tracks/{cell}.{form}")
+            mediaPlayer.playlist().addMedia(QMediaContent(url))
+            self.uiP.name.setText(f"Вставлен трек: {cell}")
 
     def clicked_cell(self):
         row = self.uiP.tableWidget.currentRow()
-        print(row)
+        # print(row)
         # self.cell = self.uiP.tableWidget.
 
     def add_track(self):
-        txt = open("queue.txt").read().split('\n')
+        # txt = open("queue.txt").read().split('\n')
+        pass
 
     def delete_track(self):
         pass
@@ -65,15 +89,18 @@ class PlayList(QMainWindow):
         con = sqlite3.connect('base.sqlite')
         cur = con.cursor()
         result1 = cur.execute("""SELECT
-                    songs.name FROM songs""").fetchall()
-        result = list()
-        for i in result1:
-            result.append(i[0])
-        tracks = check_new_tracks()
+                            songs.name FROM songs""").fetchall()
+        result = list(map(lambda x: x[0], result1))
+        tracks, paths = check_new_tracks()
+        a = 0
         for track in tracks:
-            if track[:-4] not in result:
-                print(track[:-4])
-                cur.execute("""INSERT INTO songs(name) VALUES(?)""", (track[:-4],))
+            name = track[:-4]
+            form = self.forms[track[-3:]]
+            path = paths[a]
+            a += 1
+            if name not in result:
+                print(f"Трек добавился в базу: {name}\n")
+                cur.execute("""INSERT INTO songs(name, format, way) VALUES(?, ?, ?)""", (name, form, path))
         con.commit()
         con.close()
 
@@ -122,8 +149,17 @@ class PlayList(QMainWindow):
     def add_custom_file(self):
         """Открыть окно для выбора файла и добавить сторонний трек"""
         path, _ = QFileDialog.getOpenFileName(self, "Open music")
+        if path == '':
+            return
         name = path[path.rfind('/') + 1:-4]
-        print(path[path.rfind('/') + 1:-4])
+        try:
+            form = self.forms[path[-3:]]
+        except:
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("ERROR")
+            dlg.setText("Не верный формат. Только mp3 или wav!")
+            dlg.exec()
+            return
         con = sqlite3.connect('base.sqlite')
         cur = con.cursor()
         result1 = cur.execute("""SELECT
@@ -132,9 +168,10 @@ class PlayList(QMainWindow):
         for i in result1:
             result.append(i[0])
         if name not in result:
-            cur.execute("""INSERT INTO songs(name, custom) VALUES(?, ?)""", (name, path))
+            cur.execute("""INSERT INTO songs(name, format, custom, way) VALUES(?, ?, ?)""", (name, form, path, path))
             con.commit()
         con.close()
+        self.get_base()
 
 
 class Settings(QMainWindow):
@@ -169,6 +206,9 @@ class Settings(QMainWindow):
         self.uiS.lineRed.textChanged.connect(self.activate_buttons)
         self.uiS.lineGreen.textChanged.connect(self.activate_buttons)
         self.uiS.lineBlue.textChanged.connect(self.activate_buttons)
+        # выбор кол-во цветов
+        self.uiS.comboBox.currentIndexChanged.connect(b)
+        self.uiS.comboBox.setCurrentIndex(self.index)
 
     def open_settings_txt(self):
         """Открытие файла с сохранёнными настройками"""
@@ -177,6 +217,17 @@ class Settings(QMainWindow):
         self.green = int(setting_txt[1][6:])
         self.blue = int(setting_txt[2][5:])
         self.folder = setting_txt[3][7:]
+
+    def set_color(self):
+        p = QPalette()
+        gradient = QLinearGradient(0, 0, 0, 400)
+        gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
+        p.setBrush(QPalette.Window, QBrush(gradient))
+        self.setAutoFillBackground(True)
+        self.setPalette(p)
+
+    def set_variant_of_color(self):
+        self.index = self.uiS.comboBox.currentIndex()
 
     def cancel(self):
         self.close()
@@ -255,16 +306,22 @@ class Player(QMainWindow):
 
     def init_ui(self):
         """Основная инициализация"""
-        # создаём проигрыватель
-        self.mediaPlayer = QMediaPlayer(None, QMediaPlayer.VideoSurface)
+        self.ui.playButton.setIcon(
+            self.style().standardIcon(QStyle.SP_MediaPlay))
+
+        self.forms = {'mp3': '1',
+                      'wav': '2'}
         # флажки
         self.playing = False
+        self.player_changing = False
 
         self.update_base()
+        self.open_settings_txt()
+        self.set_color()
 
-        self.mediaPlayer.stateChanged.connect(self.mediastate_changed)
-        self.mediaPlayer.positionChanged.connect(self.position_changed)
-        self.mediaPlayer.durationChanged.connect(self.duration_changed)
+        mediaPlayer.stateChanged.connect(self.mediastate_changed)
+        mediaPlayer.positionChanged.connect(self.position_changed)
+        mediaPlayer.durationChanged.connect(self.duration_changed)
 
         self.ui.horizontalSlider.valueChanged.connect(self.set_position)
 
@@ -273,13 +330,15 @@ class Player(QMainWindow):
         self.ui.playButton.clicked.connect(self.pause_music)
         self.ui.win_options.triggered.connect(self.open_parametr)
 
-        self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile('tracks/Eye Of The_Storm.mp3')))  # временно
+        self.ui.next_button.clicked.connect(mediaPlayer.playlist().next)
+        self.ui.previous_button.clicked.connect(mediaPlayer.playlist().previous)
 
     def set_position(self, position):
-        self.mediaPlayer.setPosition(position)
+        if not self.player_changing:
+            mediaPlayer.setPosition(position)
 
-    def mediastate_changed(self, state):
-        if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
+    def mediastate_changed(self):
+        if mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.ui.playButton.setIcon(
                 self.style().standardIcon(QStyle.SP_MediaPause)
 
@@ -292,7 +351,9 @@ class Player(QMainWindow):
             )
 
     def position_changed(self, position):
+        self.player_changing = True
         self.ui.horizontalSlider.setValue(position)
+        self.player_changing = False
 
     def duration_changed(self, duration):
         self.ui.horizontalSlider.setRange(0, duration)
@@ -315,43 +376,56 @@ class Player(QMainWindow):
         result = list(map(lambda x: x[0], result1))
         # for i in result1:
         #     result.append(i[0])
-        tracks = check_new_tracks()
+        tracks, paths = check_new_tracks()
+        a = 0
         for track in tracks:
             name = track[:-4]
-            form = track[-3:]
+            form = self.forms[track[-3:]]
+            path = paths[a]
+            a += 1
             if name not in result:
-                print(name)
-                cur.execute("""INSERT INTO songs(name, format) VALUES(?, ?)""", (name, form))
+                print(f"Трек добавился в базу: {name}\n")
+                cur.execute("""INSERT INTO songs(name, format, way) VALUES(?, ?, ?)""", (name, form, path))
         con.commit()
         con.close()
 
+    def open_settings_txt(self):
+        """Открытие файла с сохранёнными настройками"""
+        setting_txt = open("settings.txt").read().split('\n')
+        self.red = int(setting_txt[0][4:])
+        self.green = int(setting_txt[1][6:])
+        self.blue = int(setting_txt[2][5:])
+        self.folder = setting_txt[3][7:]
+
+    def set_color(self):
+        p = QPalette()
+        gradient = QLinearGradient(0, 0, 0, 400)
+        gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
+        p.setBrush(QPalette.Window, QBrush(gradient))
+        self.setAutoFillBackground(True)
+        self.setPalette(p)
+
     def pause_music(self):
         """Остановить или воспроизвести музыку"""
-        if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
-            self.mediaPlayer.pause()  # остановить
+        if mediaPlayer.state() == QMediaPlayer.PlayingState:
+            mediaPlayer.pause()  # остановить
             self.ui.playButton.setText('Play')
         else:
-            self.mediaPlayer.play()  # продолжить
+            mediaPlayer.play()  # продолжить
             self.ui.playButton.setText('Stop')
 
     def open_file(self):
         """Открыть окно для выбора файла"""
         filename, _ = QFileDialog.getOpenFileName(self, "Open music", 'G:/Sasha/work/PyMusic/tracks')
-        print(filename)
+        print(f"Вручную добавлен трек: {filename}\n")
         if filename != '':
-            self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(filename)))
+            url = QUrl.fromLocalFile(filename)
+            mediaPlayer.playlist().addMedia(QMediaContent(url))
             self.ui.playButton.setText("Play")
 
 
 def check_new_tracks():
-    # txt = open('old_tracks.txt').read().split('\n')
     new_txt = list(map(lambda x: x[7:], glob.glob("tracks/*.mp3")))
-    # for track in new_txt:
-    #     if track not in txt:
-    #         txt.append(track)
-    # for track in txt:
-    #     if track not in new_txt:
-    #         txt.remove(track)
-    # txt = open('old_tracks.txt', 'w').write('\n'.join(txt))
-    print(new_txt)
-    return new_txt
+    path = list(map(lambda x: os.path.abspath(f"tracks/{x}"), new_txt))
+    print(f"check_new_tracks: \n{new_txt}\n")
+    return new_txt, path
