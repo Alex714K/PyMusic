@@ -47,7 +47,6 @@ class PlayList(QMainWindow):
         self.get_queue()
 
         self.uiP.tableWidget.cellDoubleClicked.connect(self.choose_track)
-        self.uiP.tableWidget.cellClicked.connect(self.clicked_cell)
 
         self.uiP.custom_button.clicked.connect(self.add_custom_file)
 
@@ -67,13 +66,7 @@ class PlayList(QMainWindow):
             mediaPlayer.playlist().addMedia(QMediaContent(url))
             self.uiP.name.setText(f"Вставлен трек: {cell}")
 
-    def clicked_cell(self):
-        row = self.uiP.tableWidget.currentRow()
-        # print(row)
-        # self.cell = self.uiP.tableWidget.
-
     def add_track(self):
-        # txt = open("queue.txt").read().split('\n')
         pass
 
     def delete_track(self):
@@ -203,12 +196,18 @@ class Settings(QMainWindow):
         self.uiS.activate_button.clicked.connect(self.activate)
         self.uiS.confirm_button.clicked.connect(self.confirm)
         # изменение данных в строках
-        self.uiS.lineRed.textChanged.connect(self.activate_buttons)
-        self.uiS.lineGreen.textChanged.connect(self.activate_buttons)
-        self.uiS.lineBlue.textChanged.connect(self.activate_buttons)
+        self.uiS.lineRed.textChanged.connect(self.color_changed)
+        self.uiS.lineGreen.textChanged.connect(self.color_changed)
+        self.uiS.lineBlue.textChanged.connect(self.color_changed)
+        self.uiS.lineRed_2.textChanged.connect(self.color_changed)
+        self.uiS.lineGreen_2.textChanged.connect(self.color_changed)
+        self.uiS.lineBlue_2.textChanged.connect(self.color_changed)
+        self.uiS.lineRed_3.textChanged.connect(self.color_changed)
+        self.uiS.lineGreen_3.textChanged.connect(self.color_changed)
+        self.uiS.lineBlue_3.textChanged.connect(self.color_changed)
         # выбор кол-во цветов
-        self.uiS.comboBox.currentIndexChanged.connect(b)
-        self.uiS.comboBox.setCurrentIndex(self.index)
+        self.uiS.comboBox.currentIndexChanged.connect(self.set_variant_of_color)
+        self.uiS.comboBox.setCurrentIndex(self.variant)
 
     def open_settings_txt(self):
         """Открытие файла с сохранёнными настройками"""
@@ -216,7 +215,14 @@ class Settings(QMainWindow):
         self.red = int(setting_txt[0][4:])
         self.green = int(setting_txt[1][6:])
         self.blue = int(setting_txt[2][5:])
-        self.folder = setting_txt[3][7:]
+        self.red2 = int(setting_txt[3][5:])
+        self.green2 = int(setting_txt[4][7:])
+        self.blue2 = int(setting_txt[5][6:])
+        self.red3 = int(setting_txt[6][5:])
+        self.green3 = int(setting_txt[7][7:])
+        self.blue3 = int(setting_txt[8][6:])
+        self.folder = setting_txt[9][7:]
+        self.variant = int(setting_txt[10][8:])
 
     def set_color(self):
         p = QPalette()
@@ -227,7 +233,8 @@ class Settings(QMainWindow):
         self.setPalette(p)
 
     def set_variant_of_color(self):
-        self.index = self.uiS.comboBox.currentIndex()
+        self.variant = self.uiS.comboBox.currentIndex()
+        self.activate_buttons()
 
     def cancel(self):
         self.close()
@@ -235,9 +242,16 @@ class Settings(QMainWindow):
     def activate(self):
         settins_txt = open("settings.txt", 'w')
         settins_txt.write(f"red={self.red}\n"
-                          f"green={self.blue}\n"
-                          f"blue={self.green}\n"
-                          f"folder={self.folder}")
+                          f"green={self.green}\n"
+                          f"blue={self.blue}\n"
+                          f"red2={self.red2}\n"
+                          f"green2={self.green2}\n"
+                          f"blue2={self.blue2}\n"
+                          f"red3={self.red3}\n"
+                          f"green3={self.green3}\n"
+                          f"blue3={self.blue3}\n"
+                          f"folder={self.folder}\n"
+                          f"variant={self.variant}")
         settins_txt.close()
         self.uiS.activate_button.setDisabled(1)
         self.uiS.confirm_button.setDisabled(1)
@@ -245,9 +259,16 @@ class Settings(QMainWindow):
     def confirm(self):
         settins_txt = open("settings.txt", 'w')
         settins_txt.write(f"red={self.red}\n"
-                          f"green={self.blue}\n"
-                          f"blue={self.green}\n"
-                          f"folder={self.folder}")
+                          f"green={self.green}\n"
+                          f"blue={self.blue}\n"
+                          f"red2={self.red2}\n"
+                          f"green2={self.green2}\n"
+                          f"blue2={self.blue2}\n"
+                          f"red3={self.red3}\n"
+                          f"green3={self.green3}\n"
+                          f"blue3={self.blue3}\n"
+                          f"folder={self.folder}\n"
+                          f"variant={self.variant}")
         settins_txt.close()
         self.uiS.activate_button.setDisabled(1)
         self.uiS.confirm_button.setDisabled(1)
@@ -256,19 +277,31 @@ class Settings(QMainWindow):
     def activate_buttons(self):
         self.uiS.activate_button.setEnabled(1)
         self.uiS.confirm_button.setEnabled(1)
-        self.color_changed()
 
     def set_settings_in_lines(self):
         """Вставить параметры в строки"""
         self.uiS.lineRed.setText(str(self.red))
         self.uiS.lineBlue.setText(str(self.blue))
         self.uiS.lineGreen.setText(str(self.green))
+        self.uiS.lineRed_2.setText(str(self.red2))
+        self.uiS.lineBlue_2 .setText(str(self.blue2))
+        self.uiS.lineGreen_2.setText(str(self.green2))
+        self.uiS.lineRed_3.setText(str(self.red3))
+        self.uiS.lineBlue_3.setText(str(self.blue3))
+        self.uiS.lineGreen_3.setText(str(self.green3))
         self.uiS.line_folder.setText(self.folder)
 
     def color_changed(self):
         self.red = int(self.uiS.lineRed.text())
         self.green = int(self.uiS.lineGreen.text())
         self.blue = int(self.uiS.lineBlue.text())
+        self.red2 = int(self.uiS.lineRed_2.text())
+        self.green2 = int(self.uiS.lineGreen_2.text())
+        self.blue2 = int(self.uiS.lineBlue_2.text())
+        self.red3 = int(self.uiS.lineRed_3.text())
+        self.green3 = int(self.uiS.lineGreen_3.text())
+        self.blue3 = int(self.uiS.lineBlue_3.text())
+        self.activate_buttons()
 
     def red_left(self):
         self.red -= 1
@@ -395,13 +428,37 @@ class Player(QMainWindow):
         self.red = int(setting_txt[0][4:])
         self.green = int(setting_txt[1][6:])
         self.blue = int(setting_txt[2][5:])
-        self.folder = setting_txt[3][7:]
+        self.red2 = int(setting_txt[3][5:])
+        self.green2 = int(setting_txt[4][7:])
+        self.blue2 = int(setting_txt[5][6:])
+        self.red3 = int(setting_txt[6][5:])
+        self.green3 = int(setting_txt[7][7:])
+        self.blue3 = int(setting_txt[8][6:])
+        self.folder = setting_txt[9][7:]
+        self.variant = int(setting_txt[10][8:])
 
     def set_color(self):
-        p = QPalette()
-        gradient = QLinearGradient(0, 0, 0, 400)
-        gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
-        p.setBrush(QPalette.Window, QBrush(gradient))
+        variant = self.variant
+
+        if variant == 0:  # одноцветный
+            p = QPalette()
+            gradient = QLinearGradient(0, 0, 0, 400)
+            gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
+            p.setBrush(QPalette.Window, QBrush(gradient))
+        elif variant == 1:  # двухцветный
+            p = QPalette()
+            gradient = QLinearGradient(0, 0, 0, 400)
+            gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
+            gradient.setColorAt(1.0, QColor(self.red2, self.green2, self.blue2))
+            p.setBrush(QPalette.Window, QBrush(gradient))
+        elif variant == 2:  # трёхцветный
+            p = QPalette()
+            gradient = QLinearGradient(0, 0, 0, 400)
+            gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
+            gradient.setColorAt(0.5, QColor(self.red2, self.green2, self.blue2))
+            gradient.setColorAt(1, QColor(self.red3, self.green3, self.blue3))
+            p.setBrush(QPalette.Window, QBrush(gradient))
+
         self.setAutoFillBackground(True)
         self.setPalette(p)
 
@@ -409,10 +466,8 @@ class Player(QMainWindow):
         """Остановить или воспроизвести музыку"""
         if mediaPlayer.state() == QMediaPlayer.PlayingState:
             mediaPlayer.pause()  # остановить
-            self.ui.playButton.setText('Play')
         else:
             mediaPlayer.play()  # продолжить
-            self.ui.playButton.setText('Stop')
 
     def open_file(self):
         """Открыть окно для выбора файла"""
