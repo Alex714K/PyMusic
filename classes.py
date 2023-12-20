@@ -2,10 +2,8 @@ import glob
 import os
 import sqlite3
 from PyQt5 import QtWidgets
-from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
 from myplayer import Ui_MainWindow
 from myplaylist import Ui_MainPlaylist
-from mysetting import Ui_MainSetting
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QTableWidgetItem, QHeaderView, QStyle, QMessageBox
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtGui import QIcon, QPalette, QLinearGradient, QBrush, QColor
@@ -14,7 +12,12 @@ from Setting import Settings
 
 mediaPlayer = QMediaPlayer()
 playlist = QMediaPlaylist()
-url = QUrl.fromLocalFile("tracks/Eye of the storm.mp3")
+txt_queue = open('queue.txt', 'r').read().split('\n')
+for i in txt_queue:
+    print(i)
+    url = QUrl.fromLocalFile(f"tracks/{i}")
+    playlist.addMedia(QMediaContent(url))
+# url = QUrl.fromLocalFile("tracks/Eye of the storm.mp3")
 # url = QUrl.fromLocalFile("tracks/This Is It.mp3")
 
 mediaPlayer.setPlaylist(playlist)
@@ -57,7 +60,6 @@ class PlayList(QMainWindow):
         self.uiP.up_button.clicked.connect(self.up_track)
         self.uiP.down_button.clicked.connect(self.down_track)
 
-
     def choose_track(self):
         """Добавляет трек в очередь (нужно нажать на название!!!)"""
         # информация о названии клетки, строке, формате
@@ -68,6 +70,15 @@ class PlayList(QMainWindow):
             url = QUrl.fromLocalFile(f"tracks/{cell}.{form}")
             mediaPlayer.playlist().addMedia(QMediaContent(url))
             self.uiP.name.setText(f"Вставлен трек: {cell}")
+            names = open('queue.txt', 'r').read().split('\n')
+            queue = open('queue.txt', 'w')
+            if names == ['']:
+                queue.write(f'{cell}.{form}')
+            else:
+                names.append(f'{cell}.{form}')
+                queue.write('\n'.join(names))
+            queue.close()
+            self.get_queue()
 
     def add_track(self):
         pass
@@ -182,6 +193,8 @@ class PlayList(QMainWindow):
 
     def get_queue(self):
         txt = open("queue.txt").read().split('\n')
+        while self.uiP.queue.rowCount() > 0:
+            self.uiP.queue.removeRow(0)
         for i, row in enumerate(txt):
             self.uiP.queue.setRowCount(
                 self.uiP.queue.rowCount() + 1)
