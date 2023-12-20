@@ -10,17 +10,17 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QTableWidget
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtGui import QIcon, QPalette, QLinearGradient, QBrush, QColor
 from PyQt5.QtCore import Qt, QUrl
+from Setting import Settings
 
 mediaPlayer = QMediaPlayer()
 playlist = QMediaPlaylist()
 url = QUrl.fromLocalFile("tracks/Eye of the storm.mp3")
 # url = QUrl.fromLocalFile("tracks/This Is It.mp3")
 
-
-
 mediaPlayer.setPlaylist(playlist)
 mediaPlayer.playlist().setCurrentIndex(0)
 # mediaPlayer.playlist().addMedia(QMediaContent(url))
+
 
 def b():
     """Затычка"""
@@ -34,8 +34,8 @@ class PlayList(QMainWindow):
     def __init__(self):
         super(PlayList, self).__init__()
         self.uiP = Ui_MainPlaylist()
-        self.uiP.setupUi(self)
-        self.init_ui()
+        self.uiP.setupUi(self) # подключаем интерфейс
+        self.init_ui() # Нужно объяснять?)
 
     def init_ui(self):
         """Основная инициализация"""
@@ -45,6 +45,8 @@ class PlayList(QMainWindow):
         self.update_base()
         self.get_base()
         self.get_queue()
+        self.open_settings_txt()
+        self.set_color()
 
         self.uiP.tableWidget.cellDoubleClicked.connect(self.choose_track)
 
@@ -57,6 +59,7 @@ class PlayList(QMainWindow):
 
 
     def choose_track(self):
+        """Добавляет трек в очередь (нужно нажать на название!!!)"""
         # информация о названии клетки, строке, формате
         cell = self.uiP.tableWidget.currentItem().text()
         row = self.uiP.tableWidget.currentRow()
@@ -78,7 +81,43 @@ class PlayList(QMainWindow):
     def down_track(self):
         pass
 
+    def open_settings_txt(self):
+        """Открытие файла с сохранёнными настройками"""
+        setting_txt = open("settings.txt").read().split('\n')
+        self.red = int(setting_txt[0][4:])
+        self.green = int(setting_txt[1][6:])
+        self.blue = int(setting_txt[2][5:])
+        self.red2 = int(setting_txt[3][5:])
+        self.green2 = int(setting_txt[4][7:])
+        self.blue2 = int(setting_txt[5][6:])
+        self.red3 = int(setting_txt[6][5:])
+        self.green3 = int(setting_txt[7][7:])
+        self.blue3 = int(setting_txt[8][6:])
+        self.folder = setting_txt[9][7:]
+        self.variant = int(setting_txt[10][8:])
+
+    def set_color(self):
+        """Выставляет цвет фона у окна"""
+        variant = self.variant
+        p = QPalette()
+        gradient = QLinearGradient(0, 0, 0, 400)
+
+        if variant == 0:  # одноцветный
+            gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
+        elif variant == 1:  # двухцветный
+            gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
+            gradient.setColorAt(1.0, QColor(self.red2, self.green2, self.blue2))
+        elif variant == 2:  # трёхцветный
+            gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
+            gradient.setColorAt(0.5, QColor(self.red2, self.green2, self.blue2))
+            gradient.setColorAt(1, QColor(self.red3, self.green3, self.blue3))
+
+        p.setBrush(QPalette.Window, QBrush(gradient))
+        self.setAutoFillBackground(True)
+        self.setPalette(p)
+
     def update_base(self):
+        """Добавляет/Удаляет треки из базы данных"""
         con = sqlite3.connect('base.sqlite')
         cur = con.cursor()
         result1 = cur.execute("""SELECT
@@ -89,32 +128,45 @@ class PlayList(QMainWindow):
         for track in tracks:
             name = track[:-4]
             form = self.forms[track[-3:]]
-            path = paths[a]
-            a += 1
             if name not in result:
                 print(f"Трек добавился в базу: {name}\n")
-                cur.execute("""INSERT INTO songs(name, format, way) VALUES(?, ?, ?)""", (name, form, path))
+                cur.execute("""INSERT INTO songs(name, format) VALUES(?, ?)""", (name, form))
+        con.commit()
+
+        data = cur.execute("""SELECT 
+                    songs.name,
+                    format.format
+                    FROM songs
+                    LEFT JOIN format
+                        ON songs.format = format.id""").fetchall()
+        for track in data:
+            name = '.'.join(track)
+            if name not in tracks:
+                print(f"Трек удалился из базы: {name}\n")
+                cur.execute("""DELETE from songs
+                            where name = ?""", (track[0],))
+
         con.commit()
         con.close()
 
     def get_base(self):
-        """Загружает базу данных о плейлистах в правую таблицу"""
+        """Загружает базу данных о плейлистах в левую таблицу"""
         con = sqlite3.connect('base.sqlite')
         cur = con.cursor()
         result = cur.execute("""SELECT
-            songs.name,
-            teams.team,
-            albums.album,
-            format.format
-
-        FROM
-            songs
-        LEFT JOIN teams
-            ON songs.team = teams.id
-        LEFT JOIN albums
-            on songs.album = albums.id
-        LEFT JOIN format
-            ON songs.format = format.id""").fetchall()
+                                songs.name,
+                                teams.team,
+                                albums.album,
+                                format.format
+                    
+                            FROM
+                                songs
+                            LEFT JOIN teams
+                                ON songs.team = teams.id
+                            LEFT JOIN albums
+                                on songs.album = albums.id
+                            LEFT JOIN format
+                                ON songs.format = format.id""").fetchall()
         con.close()
         # суём список треков в таблицу
         for i, row in enumerate(result):
@@ -165,169 +217,6 @@ class PlayList(QMainWindow):
             con.commit()
         con.close()
         self.get_base()
-
-
-class Settings(QMainWindow):
-    """Окно настроек"""
-
-    def __init__(self):
-        super(Settings, self).__init__()
-        self.uiS = Ui_MainSetting()
-        self.uiS.setupUi(self)
-        self.init_ui()
-
-    def init_ui(self):
-        """Основная инициализация"""
-        self.uiS.confirm_button.setDisabled(1)
-        self.uiS.activate_button.setDisabled(1)
-
-        self.open_settings_txt()
-
-        self.set_settings_in_lines()
-        # кнопки изменения цветов
-        self.uiS.left_red.clicked.connect(self.red_left)
-        self.uiS.left_green.clicked.connect(self.green_left)
-        self.uiS.left_blue.clicked.connect(self.blue_left)
-        self.uiS.right_red.clicked.connect(self.red_right)
-        self.uiS.right_green.clicked.connect(self.green_right)
-        self.uiS.right_blue.clicked.connect(self.blue_right)
-        # кнопки подтверждения/отмены
-        self.uiS.cancel_button.clicked.connect(self.cancel)
-        self.uiS.activate_button.clicked.connect(self.activate)
-        self.uiS.confirm_button.clicked.connect(self.confirm)
-        # изменение данных в строках
-        self.uiS.lineRed.textChanged.connect(self.color_changed)
-        self.uiS.lineGreen.textChanged.connect(self.color_changed)
-        self.uiS.lineBlue.textChanged.connect(self.color_changed)
-        self.uiS.lineRed_2.textChanged.connect(self.color_changed)
-        self.uiS.lineGreen_2.textChanged.connect(self.color_changed)
-        self.uiS.lineBlue_2.textChanged.connect(self.color_changed)
-        self.uiS.lineRed_3.textChanged.connect(self.color_changed)
-        self.uiS.lineGreen_3.textChanged.connect(self.color_changed)
-        self.uiS.lineBlue_3.textChanged.connect(self.color_changed)
-        # выбор кол-во цветов
-        self.uiS.comboBox.currentIndexChanged.connect(self.set_variant_of_color)
-        self.uiS.comboBox.setCurrentIndex(self.variant)
-
-    def open_settings_txt(self):
-        """Открытие файла с сохранёнными настройками"""
-        setting_txt = open("settings.txt").read().split('\n')
-        self.red = int(setting_txt[0][4:])
-        self.green = int(setting_txt[1][6:])
-        self.blue = int(setting_txt[2][5:])
-        self.red2 = int(setting_txt[3][5:])
-        self.green2 = int(setting_txt[4][7:])
-        self.blue2 = int(setting_txt[5][6:])
-        self.red3 = int(setting_txt[6][5:])
-        self.green3 = int(setting_txt[7][7:])
-        self.blue3 = int(setting_txt[8][6:])
-        self.folder = setting_txt[9][7:]
-        self.variant = int(setting_txt[10][8:])
-
-    def set_color(self):
-        p = QPalette()
-        gradient = QLinearGradient(0, 0, 0, 400)
-        gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
-        p.setBrush(QPalette.Window, QBrush(gradient))
-        self.setAutoFillBackground(True)
-        self.setPalette(p)
-
-    def set_variant_of_color(self):
-        self.variant = self.uiS.comboBox.currentIndex()
-        self.activate_buttons()
-
-    def cancel(self):
-        self.close()
-
-    def activate(self):
-        settins_txt = open("settings.txt", 'w')
-        settins_txt.write(f"red={self.red}\n"
-                          f"green={self.green}\n"
-                          f"blue={self.blue}\n"
-                          f"red2={self.red2}\n"
-                          f"green2={self.green2}\n"
-                          f"blue2={self.blue2}\n"
-                          f"red3={self.red3}\n"
-                          f"green3={self.green3}\n"
-                          f"blue3={self.blue3}\n"
-                          f"folder={self.folder}\n"
-                          f"variant={self.variant}")
-        settins_txt.close()
-        self.uiS.activate_button.setDisabled(1)
-        self.uiS.confirm_button.setDisabled(1)
-
-    def confirm(self):
-        settins_txt = open("settings.txt", 'w')
-        settins_txt.write(f"red={self.red}\n"
-                          f"green={self.green}\n"
-                          f"blue={self.blue}\n"
-                          f"red2={self.red2}\n"
-                          f"green2={self.green2}\n"
-                          f"blue2={self.blue2}\n"
-                          f"red3={self.red3}\n"
-                          f"green3={self.green3}\n"
-                          f"blue3={self.blue3}\n"
-                          f"folder={self.folder}\n"
-                          f"variant={self.variant}")
-        settins_txt.close()
-        self.uiS.activate_button.setDisabled(1)
-        self.uiS.confirm_button.setDisabled(1)
-        self.close()
-
-    def activate_buttons(self):
-        """Активирует кнопки"""
-        self.uiS.activate_button.setEnabled(1)
-        self.uiS.confirm_button.setEnabled(1)
-
-    def set_settings_in_lines(self):
-        """Вставить параметры в строки"""
-        self.uiS.lineRed.setText(str(self.red))
-        self.uiS.lineBlue.setText(str(self.blue))
-        self.uiS.lineGreen.setText(str(self.green))
-        self.uiS.lineRed_2.setText(str(self.red2))
-        self.uiS.lineBlue_2 .setText(str(self.blue2))
-        self.uiS.lineGreen_2.setText(str(self.green2))
-        self.uiS.lineRed_3.setText(str(self.red3))
-        self.uiS.lineBlue_3.setText(str(self.blue3))
-        self.uiS.lineGreen_3.setText(str(self.green3))
-        self.uiS.line_folder.setText(self.folder)
-
-    def color_changed(self):
-        """Вытаскивает из строк в программу показатели цветов"""
-        self.red = int(self.uiS.lineRed.text())
-        self.green = int(self.uiS.lineGreen.text())
-        self.blue = int(self.uiS.lineBlue.text())
-        self.red2 = int(self.uiS.lineRed_2.text())
-        self.green2 = int(self.uiS.lineGreen_2.text())
-        self.blue2 = int(self.uiS.lineBlue_2.text())
-        self.red3 = int(self.uiS.lineRed_3.text())
-        self.green3 = int(self.uiS.lineGreen_3.text())
-        self.blue3 = int(self.uiS.lineBlue_3.text())
-        self.activate_buttons()
-
-    def red_left(self):
-        self.red -= 1
-        self.uiS.lineRed.setText(str(self.red))
-
-    def red_right(self):
-        self.red += 1
-        self.uiS.lineRed.setText(str(self.red))
-
-    def green_left(self):
-        self.green -= 1
-        self.uiS.lineGreen.setText(str(self.green))
-
-    def green_right(self):
-        self.green += 1
-        self.uiS.lineGreen.setText(str(self.green))
-
-    def blue_left(self):
-        self.blue -= 1
-        self.uiS.lineBlue.setText(str(self.blue))
-
-    def blue_right(self):
-        self.blue += 1
-        self.uiS.lineBlue.setText(str(self.blue))
 
 
 class Player(QMainWindow):
@@ -393,7 +282,7 @@ class Player(QMainWindow):
 
     def position_changed(self, position):
         """Плеер двигает ползунок"""
-        # была проблема, когда проигрыватель двигает ползунок, а потом ползунок смещал проигрыватель по времени.
+        # была проблема, когда проигрыватель двигает ползунок, а потом ползунок двигал проигрыватель.
         # этот флажок чинит эту проблему
         self.player_changing = True
         self.ui.horizontalSlider.setValue(position)
@@ -414,21 +303,35 @@ class Player(QMainWindow):
         self.wplay.show()
 
     def update_base(self):
+        """Добавляет/Удаляет треки из базы данных"""
         con = sqlite3.connect('base.sqlite')
         cur = con.cursor()
         result1 = cur.execute("""SELECT
-                    songs.name FROM songs""").fetchall()
+                            songs.name FROM songs""").fetchall()
         result = list(map(lambda x: x[0], result1))
         tracks, paths = check_new_tracks()
         a = 0
         for track in tracks:
             name = track[:-4]
             form = self.forms[track[-3:]]
-            path = paths[a]
-            a += 1
             if name not in result:
                 print(f"Трек добавился в базу: {name}\n")
-                cur.execute("""INSERT INTO songs(name, format, way) VALUES(?, ?, ?)""", (name, form, path))
+                cur.execute("""INSERT INTO songs(name, format) VALUES(?, ?)""", (name, form))
+        con.commit()
+
+        data = cur.execute("""SELECT 
+                    songs.name,
+                    format.format
+                    FROM songs
+                    LEFT JOIN format
+                        ON songs.format = format.id""").fetchall()
+        for track in data:
+            name = '.'.join(track)
+            if name not in tracks:
+                print(f"Трек удалился из базы: {name}\n")
+                cur.execute("""DELETE from songs
+                            where name = ?""", (track[0],))
+
         con.commit()
         con.close()
 
@@ -448,27 +351,22 @@ class Player(QMainWindow):
         self.variant = int(setting_txt[10][8:])
 
     def set_color(self):
+        """Выставляет цвет фона у окна"""
         variant = self.variant
+        p = QPalette()
+        gradient = QLinearGradient(0, 0, 0, 400)
 
         if variant == 0:  # одноцветный
-            p = QPalette()
-            gradient = QLinearGradient(0, 0, 0, 400)
             gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
-            p.setBrush(QPalette.Window, QBrush(gradient))
         elif variant == 1:  # двухцветный
-            p = QPalette()
-            gradient = QLinearGradient(0, 0, 0, 400)
             gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
             gradient.setColorAt(1.0, QColor(self.red2, self.green2, self.blue2))
-            p.setBrush(QPalette.Window, QBrush(gradient))
         elif variant == 2:  # трёхцветный
-            p = QPalette()
-            gradient = QLinearGradient(0, 0, 0, 400)
             gradient.setColorAt(0.0, QColor(self.red, self.green, self.blue))
             gradient.setColorAt(0.5, QColor(self.red2, self.green2, self.blue2))
             gradient.setColorAt(1, QColor(self.red3, self.green3, self.blue3))
-            p.setBrush(QPalette.Window, QBrush(gradient))
 
+        p.setBrush(QPalette.Window, QBrush(gradient))
         self.setAutoFillBackground(True)
         self.setPalette(p)
 
@@ -490,7 +388,8 @@ class Player(QMainWindow):
 
 
 def check_new_tracks():
+    """Возвращает """
     new_txt = list(map(lambda x: x[7:], glob.glob("tracks/*.mp3")))
     path = list(map(lambda x: os.path.abspath(f"tracks/{x}"), new_txt))
-    print(f"check_new_tracks: \n{new_txt}\n")
+    # print(f"check_new_tracks: {new_txt}\n")
     return new_txt, path
