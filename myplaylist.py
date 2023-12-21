@@ -48,7 +48,7 @@ class Ui_MainPlaylist(object):
         self.verticalLayout.addWidget(self.down_button)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.queue = QtWidgets.QTableWidget(self.horizontalLayoutWidget)
-        self.queue.setColumnCount(4)
+        self.queue.setColumnCount(1)
         self.queue.setObjectName("queue")
         self.queue.setRowCount(0)
         self.horizontalLayout.addWidget(self.queue)

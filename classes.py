@@ -10,19 +10,18 @@ from PyQt5.QtGui import QIcon, QPalette, QLinearGradient, QBrush, QColor
 from PyQt5.QtCore import Qt, QUrl
 from Setting import Settings
 
+
+
+
+
 mediaPlayer = QMediaPlayer()
 playlist = QMediaPlaylist()
-txt_queue = open('queue.txt', 'r').read().split('\n')
-for i in txt_queue:
-    print(i)
+txt_queue2 = open('queue.txt', 'r').read().split('\n')
+for i in txt_queue2:
     url = QUrl.fromLocalFile(f"tracks/{i}")
     playlist.addMedia(QMediaContent(url))
-# url = QUrl.fromLocalFile("tracks/Eye of the storm.mp3")
-# url = QUrl.fromLocalFile("tracks/This Is It.mp3")
-
 mediaPlayer.setPlaylist(playlist)
 mediaPlayer.playlist().setCurrentIndex(0)
-# mediaPlayer.playlist().addMedia(QMediaContent(url))
 
 
 def b():
@@ -53,6 +52,7 @@ class PlayList(QMainWindow):
 
         self.uiP.tableWidget.cellDoubleClicked.connect(self.choose_track)
 
+        self.uiP.custom_button.setDisabled(1)
         self.uiP.custom_button.clicked.connect(self.add_custom_file)
 
         self.uiP.add_button.clicked.connect(self.add_track)
@@ -63,8 +63,8 @@ class PlayList(QMainWindow):
     def choose_track(self):
         """Добавляет трек в очередь (нужно нажать на название!!!)"""
         # информация о названии клетки, строке, формате
-        cell = self.uiP.tableWidget.currentItem().text()
         row = self.uiP.tableWidget.currentRow()
+        cell = self.uiP.tableWidget.currentItem().text()
         form = self.uiP.tableWidget.item(row, 3).text()
         if self.uiP.tableWidget.item(row, 0).text() == cell:
             url = QUrl.fromLocalFile(f"tracks/{cell}.{form}")
@@ -81,16 +81,58 @@ class PlayList(QMainWindow):
             self.get_queue()
 
     def add_track(self):
-        pass
+        row = self.uiP.tableWidget.currentRow()
+        cell = self.uiP.tableWidget.item(row, 0).text()
+        form = self.uiP.tableWidget.item(row, 3).text()
+        url = QUrl.fromLocalFile(f"tracks/{cell}.{form}")
+        mediaPlayer.playlist().addMedia(QMediaContent(url))
+        self.uiP.name.setText(f"Вставлен трек: {cell}")
+        names = open('queue.txt', 'r').read().split('\n')
+        queue = open('queue.txt', 'w')
+        if names == ['']:
+            queue.write(f'{cell}.{form}')
+        else:
+            names.append(f'{cell}.{form}')
+            queue.write('\n'.join(names))
+        queue.close()
+        self.get_queue()
 
     def delete_track(self):
-        pass
+        row = self.uiP.queue.currentRow()
+        tracks = open('queue.txt', 'r').read().split('\n')
+        tracks.pop(row)
+        queue = open('queue.txt', 'w')
+        queue.write('\n'.join(tracks))
+        queue.close()
+        self.get_queue()
 
     def up_track(self):
-        pass
+        row = self.uiP.queue.currentRow()
+        tracks = open('queue.txt', 'r').read().split('\n')
+        try:
+            track = tracks[row]
+            tracks[row] = tracks[row - 1]
+            tracks[row - 1] = track
+            queue = open('queue.txt', 'w')
+            queue.write('\n'.join(tracks))
+            queue.close()
+            self.get_queue()
+        except:
+            return None
 
     def down_track(self):
-        pass
+        row = self.uiP.queue.currentRow()
+        tracks = open('queue.txt', 'r').read().split('\n')
+        try:
+            track = tracks[row]
+            tracks[row] = tracks[row + 1]
+            tracks[row + 1] = track
+            queue = open('queue.txt', 'w')
+            queue.write('\n'.join(tracks))
+            queue.close()
+            self.get_queue()
+        except:
+            return None
 
     def open_settings_txt(self):
         """Открытие файла с сохранёнными настройками"""
@@ -134,7 +176,7 @@ class PlayList(QMainWindow):
         result1 = cur.execute("""SELECT
                             songs.name FROM songs""").fetchall()
         result = list(map(lambda x: x[0], result1))
-        tracks, paths = check_new_tracks()
+        tracks = check_new_tracks()
         a = 0
         for track in tracks:
             name = track[:-4]
@@ -265,14 +307,37 @@ class Player(QMainWindow):
         mediaPlayer.durationChanged.connect(self.duration_changed)
 
         self.ui.horizontalSlider.valueChanged.connect(self.set_position)  # если ползунок подвигали
-
+        # кнопки
         self.ui.openAudio.clicked.connect(self.open_file)
         self.ui.playlist.triggered.connect(self.open_playlists)
         self.ui.win_options.triggered.connect(self.open_parametr)
         self.ui.playButton.clicked.connect(self.pause_music)
 
+        self.ui.update_button.clicked.connect(self.update_player)
+        self.ui.update_button.setDisabled(1)
+
         self.ui.next_button.clicked.connect(mediaPlayer.playlist().next)  # трек вперёд
         self.ui.previous_button.clicked.connect(mediaPlayer.playlist().previous)  # трек назад
+
+    def update_player(self):
+        # playlist = QMediaPlaylist()
+        # self.mediaPlayer.setPlaylist(playlist)
+        # txt_queue = open('queue.txt', 'r').read().split('\n')
+        # for i in txt_queue:
+        #     print(i)
+        #     url = QUrl.fromLocalFile(f"tracks/{i}")
+        #     self.mediaPlayer.playlist().addMedia(QMediaContent(url))
+        # self.mediaPlayer.playlist().setCurrentIndex(0)
+
+        playlist1 = QMediaPlaylist()
+        txt_queue = open('queue.txt', 'r').read().split('\n')
+        for i in txt_queue:
+            url = QUrl.fromLocalFile(f"tracks/{i}")
+            playlist1.addMedia(QMediaContent(url))
+        url = QUrl.fromLocalFile(f"tracks/This Is It.mp3")
+        playlist1.addMedia(QMediaContent(url))
+        mediaPlayer.setPlaylist(playlist1)
+        mediaPlayer.playlist().setCurrentIndex(0)
 
     def set_position(self, position):
         """Двигаем плеер в зависимости от позиции ползунка"""
@@ -283,15 +348,11 @@ class Player(QMainWindow):
         """Меняет иконку кнопки play"""
         if mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.ui.playButton.setIcon(
-                self.style().standardIcon(QStyle.SP_MediaPause)
-
-            )
+                self.style().standardIcon(QStyle.SP_MediaPause))
 
         else:
             self.ui.playButton.setIcon(
-                self.style().standardIcon(QStyle.SP_MediaPlay)
-
-            )
+                self.style().standardIcon(QStyle.SP_MediaPlay))
 
     def position_changed(self, position):
         """Плеер двигает ползунок"""
@@ -322,7 +383,7 @@ class Player(QMainWindow):
         result1 = cur.execute("""SELECT
                             songs.name FROM songs""").fetchall()
         result = list(map(lambda x: x[0], result1))
-        tracks, paths = check_new_tracks()
+        tracks = check_new_tracks()
         a = 0
         for track in tracks:
             name = track[:-4]
@@ -405,4 +466,4 @@ def check_new_tracks():
     new_txt = list(map(lambda x: x[7:], glob.glob("tracks/*.mp3")))
     path = list(map(lambda x: os.path.abspath(f"tracks/{x}"), new_txt))
     # print(f"check_new_tracks: {new_txt}\n")
-    return new_txt, path
+    return new_txt
