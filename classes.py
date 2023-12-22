@@ -464,6 +464,5 @@ class Player(QMainWindow):
 def check_new_tracks():
     """Возвращает """
     new_txt = list(map(lambda x: x[7:], glob.glob("tracks/*.mp3")))
-    path = list(map(lambda x: os.path.abspath(f"tracks/{x}"), new_txt))
     # print(f"check_new_tracks: {new_txt}\n")
     return new_txt
