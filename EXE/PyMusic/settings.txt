@@ -1,0 +1,11 @@
+red=155
+green=255
+blue=255
+red2=255
+green2=155
+blue2=255
+red3=255
+green3=255
+blue3=155
+folder=
+variant=2
