@@ -1,4 +1,4 @@
-from classes import Player
+from Player import Player
 from PyQt5.QtWidgets import QApplication
 import sys
 
