@@ -11,7 +11,6 @@ from Playlist import PlayList
 
 class Player(QMainWindow):
     """Основное окно"""
-
     def __init__(self):
         super(Player, self).__init__()
         self.mediaPlayer = QMediaPlayer()
