@@ -49,6 +49,7 @@ class Player(QMainWindow):
         self.ui.volume.valueChanged.connect(self.change_volume)
         # кнопки
         self.ui.openAudio.clicked.connect(self.open_file)
+        self.ui.openAudio.setDisabled(1)
         self.ui.playlist.triggered.connect(self.open_playlists)
         self.ui.win_options.triggered.connect(self.open_parametr)
         self.ui.playButton.clicked.connect(self.pause_music)
