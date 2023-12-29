@@ -111,7 +111,7 @@ class Settings(QMainWindow):
                           f"green3={self.green3}\n"
                           f"blue3={self.blue3}\n"
                           f"folder={self.folder}\n"
-                          f"variant={self.variant}"
+                          f"variant={self.variant}\n"
                           f"volume={self.volume}")
         settins_txt.close()
         self.uiS.activate_button.setDisabled(1)
@@ -130,7 +130,7 @@ class Settings(QMainWindow):
                           f"green3={self.green3}\n"
                           f"blue3={self.blue3}\n"
                           f"folder={self.folder}\n"
-                          f"variant={self.variant}"
+                          f"variant={self.variant}\n"
                           f"volume={self.volume}")
         settins_txt.close()
         self.uiS.activate_button.setDisabled(1)
