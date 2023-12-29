@@ -1,8 +1,8 @@
 import glob
 import sqlite3
+from myplaylist import Ui_PlayList
 from PyQt5 import QtWidgets
-from myplaylist import Ui_MainPlaylist
-from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTableWidgetItem, QHeaderView, QMessageBox
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTableWidgetItem, QHeaderView, QMessageBox, QTableWidget
 from PyQt5.QtMultimedia import QMediaContent
 from PyQt5.QtGui import QPalette, QLinearGradient, QBrush, QColor
 from PyQt5.QtCore import QUrl
@@ -11,17 +11,21 @@ from PyQt5.QtCore import QUrl
 class PlayList(QMainWindow):
     """Окно плейлиста (скорей библиотека со всеми треками)"""
 
-    def __init__(self, mediaPlayer):
+    def __init__(self, mediaplayer):
         super(PlayList, self).__init__()
-        self.mediaPlayer = mediaPlayer
-        self.uiP = Ui_MainPlaylist()
+        self.mediaPlayer = mediaplayer
+        self.uiP = Ui_PlayList()
         self.uiP.setupUi(self)  # подключаем интерфейс
         self.init_ui()  # Нужно объяснять?)
 
     def init_ui(self):
         """Основная инициализация"""
+        self.setWindowTitle('PlayList')
+        # Флажки
         self.forms = {'mp3': '1',
                       'wav': '2'}
+
+        self.click_cell = False
 
         self.update_base()
         self.get_base()
@@ -29,7 +33,7 @@ class PlayList(QMainWindow):
         self.open_settings_txt()
         self.set_color()
 
-        self.uiP.tableWidget.cellDoubleClicked.connect(self.choose_track)
+        self.uiP.tableWidget.cellClicked.connect(self.clicked_cell)
 
         self.uiP.custom_button.clicked.connect(self.add_custom_file)
         self.uiP.custom_button.setDisabled(1)
@@ -38,27 +42,41 @@ class PlayList(QMainWindow):
         self.uiP.delete_button.clicked.connect(self.delete_track)
         self.uiP.up_button.clicked.connect(self.up_track)
         self.uiP.down_button.clicked.connect(self.down_track)
-        self.uiP.edit_button.clicked.connect()
+        self.uiP.edit_button.clicked.connect(self.edit_cell)
+        self.uiP.edit_button.setDisabled(1)
 
-    def choose_track(self):
-        """Добавляет трек в очередь (нужно нажать на название!!!)"""
-        # информация о названии клетки, строке, формате
-        row = self.uiP.tableWidget.currentRow()
-        cell = self.uiP.tableWidget.currentItem().text()
-        form = self.uiP.tableWidget.item(row, 3).text()
-        if self.uiP.tableWidget.item(row, 0).text() == cell:
-            url = QUrl.fromLocalFile(f"tracks/{cell}.{form}")
-            self.mediaPlayer.playlist().addMedia(QMediaContent(url))
-            self.uiP.name.setText(f"Вставлен трек: {cell}")
-            names = open('queue.txt', 'r').read().split('\n')
-            queue = open('queue.txt', 'w')
-            if names == ['']:
-                queue.write(f'{cell}.{form}')
-            else:
-                names.append(f'{cell}.{form}')
-                queue.write('\n'.join(names))
-            queue.close()
-            self.get_queue()
+    def edit_cell(self):
+        """Обновляет данные о треке в базу данных (альбом, исполнителя)"""
+        if self.click_cell:  # если ячейку нажали
+            cell = self.uiP.tableWidget.currentItem().text()
+        else:  # если ячейку не нажали
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("ERROR")
+            dlg.setText("Выберите ячейку, которую хотите изменить.")
+            dlg.exec()
+            return
+
+        if cell == self.uiP.tableWidget.item(self.uiP.tableWidget.currentRow(), 0).text():
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("ERROR")
+            dlg.setText("Название нельзя редактировать.")
+            dlg.exec()
+            return
+
+        con = sqlite3.connect('base.sqlite')
+        cur = con.cursor()
+        text = self.uiP.lineEdit.text()
+        name = self.uiP.tableWidget.item(self.uiP.tableWidget.currentRow(), 0)
+        if self.uiP.tableWidget.currentColumn() == 1:
+            cur.execute("""UPDATE songs SET team = ? WHERE name = ?""", (text, name))
+        if self.uiP.tableWidget.currentColumn() == 2:
+            cur.execute("""UPDATE songs SET album = ? WHERE name = ?""", (text, name))
+        con.commit()
+        con.close()
+        self.get_base()
+
+    def clicked_cell(self):
+        self.click_cell = True
 
     def add_track(self):
         row = self.uiP.tableWidget.currentRow()
@@ -87,6 +105,7 @@ class PlayList(QMainWindow):
         self.get_queue()
 
     def up_track(self):
+        """Поднимает трек в очереди"""
         row = self.uiP.queue.currentRow()
         tracks = open('queue.txt', 'r').read().split('\n')
         try:
@@ -98,9 +117,10 @@ class PlayList(QMainWindow):
             queue.close()
             self.get_queue()
         except:
-            return None
+            return
 
     def down_track(self):
+        """Опускает трек в очереди"""
         row = self.uiP.queue.currentRow()
         tracks = open('queue.txt', 'r').read().split('\n')
         try:
@@ -112,7 +132,7 @@ class PlayList(QMainWindow):
             queue.close()
             self.get_queue()
         except:
-            return None
+            return
 
     def open_settings_txt(self):
         """Открытие файла с сохранёнными настройками"""
@@ -201,6 +221,8 @@ class PlayList(QMainWindow):
                             LEFT JOIN format
                                 ON songs.format = format.id""").fetchall()
         con.close()
+        while self.uiP.tableWidget.rowCount() > 0:  # Удаляем старые строки
+            self.uiP.tableWidget.removeRow(0)
         # суём список треков в таблицу
         for i, row in enumerate(result):
             self.uiP.tableWidget.setRowCount(
@@ -211,7 +233,7 @@ class PlayList(QMainWindow):
         # ставим размер столбцов в соответствии с шириной названий
         self.uiP.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.uiP.tableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.uiP.tableWidget.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
+        self.uiP.tableWidget.setEditTriggers(QTableWidget.NoEditTriggers)
 
     def get_queue(self):
         txt = open("queue.txt").read().split('\n')
@@ -223,7 +245,7 @@ class PlayList(QMainWindow):
             self.uiP.queue.setItem(
                 i, 0, QTableWidgetItem(str(row)))
 
-        self.uiP.queue.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
+        self.uiP.queue.setEditTriggers(QTableWidget.NoEditTriggers)
         self.uiP.queue.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
     def add_custom_file(self):

@@ -1,8 +1,7 @@
 import glob
 import sqlite3
-from PyQt5 import QtWidgets
-from myplayer import Ui_MainWindow
-from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTableWidgetItem, QHeaderView, QStyle
+from myplayer import Ui_Player
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTableWidgetItem, QHeaderView, QStyle, QTableWidget
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtGui import QPalette, QLinearGradient, QBrush, QColor
 from PyQt5.QtCore import QUrl
@@ -16,12 +15,13 @@ class Player(QMainWindow):
     def __init__(self):
         super(Player, self).__init__()
         self.mediaPlayer = QMediaPlayer()
-        self.ui = Ui_MainWindow()
+        self.ui = Ui_Player()
         self.ui.setupUi(self)  # подключаем интерфейс
         self.init_ui()  # Нужно объяснять?)
 
     def init_ui(self):
         """Основная инициализация"""
+        self.setWindowTitle('Player')
         # прикольная кнопка плей is activated
         self.ui.playButton.setIcon(
             self.style().standardIcon(QStyle.SP_MediaPlay))
@@ -60,15 +60,15 @@ class Player(QMainWindow):
     def get_queue_in_table(self):
         """Вставляет список очереди в таблицу"""
         queue = open('queue.txt', 'r').read().split('\n')
-        while self.uiP.queue.rowCount() > 0:  # Удаляем старые строки
-            self.uiP.queue.removeRow(0)
+        while self.ui.list_queue.rowCount() > 0:  # Удаляем старые строки
+            self.ui.list_queue.removeRow(0)
         for i, elem in enumerate(queue):  # Добавляем новые строки
             self.ui.list_queue.setRowCount(
                 self.ui.list_queue.rowCount() + 1)
             self.ui.list_queue.setItem(
                 i, 0, QTableWidgetItem(str(elem)))
 
-        self.ui.list_queue.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)  # Нельзя изменить ячейку
+        self.ui.list_queue.setEditTriggers(QTableWidget.NoEditTriggers)  # Нельзя изменить ячейку
         # Нельзя изменить ширину столбца и строки
         self.ui.list_queue.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.ui.list_queue.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)

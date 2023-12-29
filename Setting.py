@@ -1,4 +1,4 @@
-from mysetting import Ui_MainSetting
+from mysetting import Ui_Settings
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtGui import QPalette, QLinearGradient, QBrush, QColor
 
@@ -7,12 +7,14 @@ class Settings(QMainWindow):
     """Окно настроек"""
     def __init__(self):
         super(Settings, self).__init__()
-        self.uiS = Ui_MainSetting()
+        self.uiS = Ui_Settings()
         self.uiS.setupUi(self)
         self.init_ui()
 
     def init_ui(self):
         """Основная инициализация"""
+        self.setWindowTitle('Settings')
+
         self.uiS.confirm_button.setDisabled(1)
         self.uiS.activate_button.setDisabled(1)
 

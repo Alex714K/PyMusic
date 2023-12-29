@@ -11,11 +11,11 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_MainPlaylist(object):
-    def setupUi(self, MainPlaylist):
-        MainPlaylist.setObjectName("MainPlaylist")
-        MainPlaylist.resize(1137, 593)
-        self.centralwidget = QtWidgets.QWidget(MainPlaylist)
+class Ui_PlayList(object):
+    def setupUi(self, PlayList):
+        PlayList.setObjectName("PlayList")
+        PlayList.resize(1146, 606)
+        self.centralwidget = QtWidgets.QWidget(PlayList)
         self.centralwidget.setObjectName("centralwidget")
         self.custom_button = QtWidgets.QPushButton(self.centralwidget)
         self.custom_button.setGeometry(QtCore.QRect(10, 510, 93, 28))
@@ -55,28 +55,37 @@ class Ui_MainPlaylist(object):
         self.queue.setObjectName("queue")
         self.queue.setRowCount(0)
         self.horizontalLayout.addWidget(self.queue)
-        self.name = QtWidgets.QLabel(self.centralwidget)
-        self.name.setGeometry(QtCore.QRect(110, 514, 991, 20))
+        self.horizontalLayoutWidget_2 = QtWidgets.QWidget(self.centralwidget)
+        self.horizontalLayoutWidget_2.setGeometry(QtCore.QRect(110, 510, 1021, 31))
+        self.horizontalLayoutWidget_2.setObjectName("horizontalLayoutWidget_2")
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_2)
+        self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.name = QtWidgets.QLabel(self.horizontalLayoutWidget_2)
         self.name.setObjectName("name")
-        MainPlaylist.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(MainPlaylist)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1137, 26))
+        self.horizontalLayout_2.addWidget(self.name)
+        self.lineEdit = QtWidgets.QLineEdit(self.horizontalLayoutWidget_2)
+        self.lineEdit.setObjectName("lineEdit")
+        self.horizontalLayout_2.addWidget(self.lineEdit)
+        PlayList.setCentralWidget(self.centralwidget)
+        self.menubar = QtWidgets.QMenuBar(PlayList)
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1146, 26))
         self.menubar.setObjectName("menubar")
-        MainPlaylist.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(MainPlaylist)
+        PlayList.setMenuBar(self.menubar)
+        self.statusbar = QtWidgets.QStatusBar(PlayList)
         self.statusbar.setObjectName("statusbar")
-        MainPlaylist.setStatusBar(self.statusbar)
+        PlayList.setStatusBar(self.statusbar)
 
-        self.retranslateUi(MainPlaylist)
-        QtCore.QMetaObject.connectSlotsByName(MainPlaylist)
+        self.retranslateUi(PlayList)
+        QtCore.QMetaObject.connectSlotsByName(PlayList)
 
-    def retranslateUi(self, MainPlaylist):
+    def retranslateUi(self, PlayList):
         _translate = QtCore.QCoreApplication.translate
-        MainPlaylist.setWindowTitle(_translate("MainPlaylist", "MainWindow"))
-        self.custom_button.setText(_translate("MainPlaylist", "Add music"))
-        self.add_button.setText(_translate("MainPlaylist", "Add"))
-        self.delete_button.setText(_translate("MainPlaylist", "Delete"))
-        self.up_button.setText(_translate("MainPlaylist", "Up"))
-        self.down_button.setText(_translate("MainPlaylist", "Down"))
-        self.edit_button.setText(_translate("MainPlaylist", "Edit"))
-        self.name.setText(_translate("MainPlaylist", "Вставлен трек:  None"))
+        PlayList.setWindowTitle(_translate("PlayList", "MainWindow"))
+        self.custom_button.setText(_translate("PlayList", "Add music"))
+        self.add_button.setText(_translate("PlayList", "Add"))
+        self.delete_button.setText(_translate("PlayList", "Delete"))
+        self.up_button.setText(_translate("PlayList", "Up"))
+        self.down_button.setText(_translate("PlayList", "Down"))
+        self.edit_button.setText(_translate("PlayList", "Edit"))
+        self.name.setText(_translate("PlayList", "Вставлен трек:  None"))
