@@ -1,21 +1,13 @@
 import glob
-import os
 import sqlite3
 from PyQt5 import QtWidgets
 from myplayer import Ui_MainWindow
-from myplaylist import Ui_MainPlaylist
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QTableWidgetItem, QHeaderView, QStyle, QMessageBox
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTableWidgetItem, QHeaderView, QStyle
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
-from PyQt5.QtGui import QIcon, QPalette, QLinearGradient, QBrush, QColor
-from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtGui import QPalette, QLinearGradient, QBrush, QColor
+from PyQt5.QtCore import QUrl
 from Setting import Settings
 from Playlist import PlayList
-
-
-def b():
-    """Затычка"""
-    print("Затычка")
-    pass
 
 
 class Player(QMainWindow):
@@ -44,6 +36,7 @@ class Player(QMainWindow):
         self.open_settings_txt()  # вытаскиваем настройки
         self.set_color()  # ставим цвет фона
         self.update_player()  # обновляем плейлист в QMediaPlayer
+        self.get_queue_in_table()  # вставляет список очереди в таблицу
 
         # если изменилось состояние (play/stop)
         self.mediaPlayer.stateChanged.connect(self.mediastate_changed)
@@ -53,6 +46,7 @@ class Player(QMainWindow):
         self.mediaPlayer.durationChanged.connect(self.duration_changed)
 
         self.ui.horizontalSlider.valueChanged.connect(self.set_position)  # если ползунок подвигали
+        self.ui.volume.valueChanged.connect(self.change_volume)
         # кнопки
         self.ui.openAudio.clicked.connect(self.open_file)
         self.ui.playlist.triggered.connect(self.open_playlists)
@@ -63,13 +57,33 @@ class Player(QMainWindow):
         self.ui.previous_button.clicked.connect(self.previous_track)  # трек назад
         self.ui.update_button.clicked.connect(self.update_player)  # обновить очередь треков после изменений
 
-    def next_track(self):
-        self.mediaPlayer.playlist().next()
+    def get_queue_in_table(self):
+        """Вставляет список очереди в таблицу"""
+        queue = open('queue.txt', 'r').read().split('\n')
+        while self.uiP.queue.rowCount() > 0:  # Удаляем старые строки
+            self.uiP.queue.removeRow(0)
+        for i, elem in enumerate(queue):  # Добавляем новые строки
+            self.ui.list_queue.setRowCount(
+                self.ui.list_queue.rowCount() + 1)
+            self.ui.list_queue.setItem(
+                i, 0, QTableWidgetItem(str(elem)))
 
-    def previous_track(self):
-        self.mediaPlayer.playlist().previous()
+        self.ui.list_queue.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)  # Нельзя изменить ячейку
+        # Нельзя изменить ширину столбца и строки
+        self.ui.list_queue.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.ui.list_queue.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
+    def change_volume(self, volume):
+        """Изменяет громкость"""
+        self.mediaPlayer.setVolume(int(volume))
+        setting_volume = open('settings.txt', 'r').read().split('\n')
+        setting_volume[11] = str(volume)
+        txt = open('settings.txt', 'w')
+        txt.write('\n'.join(setting_volume))
+        txt.close()
 
     def update_player(self):
+        """Обновляет вручную очередь в плеере"""
         playlist = QMediaPlaylist(self.mediaPlayer)
         txt_queue = open('queue.txt', 'r').read().split('\n')
         for i in txt_queue:
@@ -78,6 +92,7 @@ class Player(QMainWindow):
             playlist.addMedia(QMediaContent(url))
         self.mediaPlayer.setPlaylist(playlist)
         self.mediaPlayer.playlist().setCurrentIndex(0)
+        self.get_queue_in_table()
 
     def set_position(self, position):
         """Двигаем плеер в зависимости от позиции ползунка"""
@@ -112,7 +127,7 @@ class Player(QMainWindow):
         self.wpar.show()
 
     def open_playlists(self):
-        """Открывает окно с библиотекой"""
+        """Открывает окно с библиотекой треков"""
         self.wplay = PlayList(self.mediaPlayer)
         self.wplay.show()
 
@@ -124,7 +139,6 @@ class Player(QMainWindow):
                             songs.name FROM songs""").fetchall()
         result = list(map(lambda x: x[0], result1))
         tracks = check_new_tracks()
-        a = 0
         for track in tracks:
             name = track[:-4]
             form = self.forms[track[-3:]]
@@ -192,6 +206,12 @@ class Player(QMainWindow):
         else:
             self.mediaPlayer.play()  # продолжить
 
+    def next_track(self):
+        self.mediaPlayer.playlist().next()
+
+    def previous_track(self):
+        self.mediaPlayer.playlist().previous()
+
     def open_file(self):
         """Открыть окно для выбора файла"""
         filename, _ = QFileDialog.getOpenFileName(self, "Open music", 'G:/Sasha/work/PyMusic/tracks')
@@ -205,5 +225,4 @@ class Player(QMainWindow):
 def check_new_tracks():
     """Возвращает """
     new_txt = list(map(lambda x: x[7:], glob.glob("tracks/*.mp3")))
-    # print(f"check_new_tracks: {new_txt}\n")
     return new_txt

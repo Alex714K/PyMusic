@@ -1,11 +1,6 @@
-import glob
-import os
-import sqlite3
-from PyQt5 import QtWidgets
 from mysetting import Ui_MainSetting
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QTableWidgetItem, QHeaderView, QStyle, QMessageBox
-from PyQt5.QtGui import QIcon, QPalette, QLinearGradient, QBrush, QColor
-from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtGui import QPalette, QLinearGradient, QBrush, QColor
 
 
 class Settings(QMainWindow):
@@ -79,6 +74,7 @@ class Settings(QMainWindow):
         self.blue3 = int(setting_txt[8][6:])
         self.folder = setting_txt[9][7:]
         self.variant = int(setting_txt[10][8:])
+        self.volume = setting_txt[11][7:]
 
     def set_color(self):
         """Выставляет цвет фона у окна"""
@@ -113,7 +109,8 @@ class Settings(QMainWindow):
                           f"green3={self.green3}\n"
                           f"blue3={self.blue3}\n"
                           f"folder={self.folder}\n"
-                          f"variant={self.variant}")
+                          f"variant={self.variant}"
+                          f"volume={self.volume}")
         settins_txt.close()
         self.uiS.activate_button.setDisabled(1)
         self.uiS.confirm_button.setDisabled(1)
@@ -131,7 +128,8 @@ class Settings(QMainWindow):
                           f"green3={self.green3}\n"
                           f"blue3={self.blue3}\n"
                           f"folder={self.folder}\n"
-                          f"variant={self.variant}")
+                          f"variant={self.variant}"
+                          f"volume={self.volume}")
         settins_txt.close()
         self.uiS.activate_button.setDisabled(1)
         self.uiS.confirm_button.setDisabled(1)

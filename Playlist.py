@@ -1,14 +1,11 @@
 import glob
-import os
 import sqlite3
 from PyQt5 import QtWidgets
-from myplayer import Ui_MainWindow
 from myplaylist import Ui_MainPlaylist
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QTableWidgetItem, QHeaderView, QStyle, QMessageBox
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
-from PyQt5.QtGui import QIcon, QPalette, QLinearGradient, QBrush, QColor
-from PyQt5.QtCore import Qt, QUrl
-from Setting import Settings
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTableWidgetItem, QHeaderView, QMessageBox
+from PyQt5.QtMultimedia import QMediaContent
+from PyQt5.QtGui import QPalette, QLinearGradient, QBrush, QColor
+from PyQt5.QtCore import QUrl
 
 
 class PlayList(QMainWindow):
@@ -34,13 +31,14 @@ class PlayList(QMainWindow):
 
         self.uiP.tableWidget.cellDoubleClicked.connect(self.choose_track)
 
-        self.uiP.custom_button.setDisabled(1)
         self.uiP.custom_button.clicked.connect(self.add_custom_file)
+        self.uiP.custom_button.setDisabled(1)
 
         self.uiP.add_button.clicked.connect(self.add_track)
         self.uiP.delete_button.clicked.connect(self.delete_track)
         self.uiP.up_button.clicked.connect(self.up_track)
         self.uiP.down_button.clicked.connect(self.down_track)
+        self.uiP.edit_button.clicked.connect()
 
     def choose_track(self):
         """Добавляет трек в очередь (нужно нажать на название!!!)"""
@@ -230,6 +228,7 @@ class PlayList(QMainWindow):
 
     def add_custom_file(self):
         """Открыть окно для выбора файла и добавить сторонний трек"""
+        # проблема - QMediaPlayer не умеет работать с не локальными файлами (я не нашёл)
         path, _ = QFileDialog.getOpenFileName(self, "Open music")
         if path == '':
             return
@@ -254,3 +253,9 @@ class PlayList(QMainWindow):
             con.commit()
         con.close()
         self.get_base()
+
+
+def check_new_tracks():
+    """Возвращает """
+    new_txt = list(map(lambda x: x[7:], glob.glob("tracks/*.mp3")))
+    return new_txt
